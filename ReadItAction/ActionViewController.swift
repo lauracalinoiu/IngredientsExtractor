@@ -7,35 +7,50 @@
 //
 
 import UIKit
-import MobileCoreServices
-import AVFoundation
 
-class ActionViewController: UIViewController {
+class ActionViewController: UIPageViewController {
   
   @IBOutlet weak var textView: UITextView!
   
+  private lazy var orderedViewControllers: [UIViewController] = {
+    return [self.newRecipePartViewController("IngredientsController"), self.newRecipePartViewController("StepsController")]
+  }()
+  
+  private func newRecipePartViewController(storyboardId: String) -> UIViewController{
+    return UIStoryboard(name: "MainInterface", bundle: nil).instantiateViewControllerWithIdentifier(storyboardId)
+  }
+  
   override func viewDidLoad(){
     super.viewDidLoad()
-  
-    for item: AnyObject in self.extensionContext!.inputItems {
-      let inputItem = item as! NSExtensionItem
-      for provider: AnyObject in inputItem.attachments! {
-        let itemProvider = provider as! NSItemProvider
-        if itemProvider.hasItemConformingToTypeIdentifier(kUTTypePropertyList as String) {
-          itemProvider.loadItemForTypeIdentifier(kUTTypePropertyList as String, options: nil, completionHandler: { (dict, error) in
-            
-            let itemDictionary = dict as! NSDictionary
-            let javaScriptValues = itemDictionary[NSExtensionJavaScriptPreprocessingResultsKey] as! NSDictionary
-            print(javaScriptValues)
-          })
-          break
-        }
-      }
+    
+    dataSource = self
+    
+    if let firstViewController = orderedViewControllers.first {
+      setViewControllers([firstViewController], direction: .Forward, animated: true, completion: nil)
     }
   }
+}
+
+extension ActionViewController: UIPageViewControllerDataSource{
   
-  @IBAction func done() {
-    self.extensionContext!.completeRequestReturningItems(self.extensionContext!.inputItems, completionHandler: nil)
+  func pageViewController(pageViewController: UIPageViewController, viewControllerBeforeViewController viewController: UIViewController) -> UIViewController? {
+    return orderedViewControllers[(orderedViewControllers.indexOf(viewController)!+1)%2]
   }
   
+  func pageViewController(pageViewController: UIPageViewController, viewControllerAfterViewController viewController: UIViewController) -> UIViewController? {
+    return orderedViewControllers[(orderedViewControllers.indexOf(viewController)!+1)%2]
+  }
+  
+  func presentationCountForPageViewController(pageViewController: UIPageViewController) -> Int {
+    return orderedViewControllers.count
+  }
+  
+  func presentationIndexForPageViewController(pageViewController: UIPageViewController) -> Int {
+    guard let firstViewController = viewControllers?.first,
+      firstViewControllerIndex = orderedViewControllers.indexOf(firstViewController) else {
+        return 0
+    }
+    
+    return firstViewControllerIndex
+  }
 }
